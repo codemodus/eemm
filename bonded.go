@@ -53,6 +53,6 @@ func (s *bondedSession) close() {
 	}
 }
 
-func (s *bondedSession) sync() error {
-	return s.src.syncTo(s.dst)
+func (s *bondedSession) regularize() error {
+	return s.src.regularize(s.dst)
 }

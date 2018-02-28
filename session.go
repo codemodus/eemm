@@ -112,7 +112,7 @@ func (s *session) setDelim() error {
 	return <-ec
 }
 
-func (s *session) syncTo(dst *session) error {
+func (s *session) regularized(dst *session) error {
 	srcMis, err := mailboxInfos(s, "")
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func (s *session) syncTo(dst *session) error {
 	if err = addMissingBoxes(dst, srcMis); err != nil {
 		return err
 	}
-	dst.logf("normalized mailboxes")
+	dst.logf("regularized mailboxes")
 
 	if true {
 		// die for now

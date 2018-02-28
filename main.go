@@ -43,8 +43,8 @@ func main() {
 	trip(err)
 	defer bs.close()
 
-	// run sync procedure
-	trip(bs.sync())
+	// run regularization procedure
+	trip(bs.regularize())
 
 	cs.Info("goodbye")
 
