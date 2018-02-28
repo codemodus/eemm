@@ -112,7 +112,7 @@ func (s *session) setDelim() error {
 	return <-ec
 }
 
-func (s *session) regularized(dst *session) error {
+func (s *session) regularize(dst *session) error {
 	srcMis, err := mailboxInfos(s, "")
 	if err != nil {
 		return err
