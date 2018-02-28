@@ -31,7 +31,7 @@ func main() {
 	srcConf := sessionConfig{
 		server:   "mail.host.invalid",
 		port:     "993",
-		account:  "srv@example.com",
+		account:  "src@example.com",
 		password: "invalid",
 	}
 

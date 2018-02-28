@@ -30,7 +30,7 @@ func newBondedSession(cs *coms, id int, dstConf, srcConf sessionConfig) (*bonded
 		return nil, err
 	}
 	bs.src = src
-	bs.logf("established session for source (%s)", src.cf.account)
+	bs.logf("established session for source (%s)", src.cnf.account)
 
 	return bs, nil
 }

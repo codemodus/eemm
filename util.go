@@ -22,8 +22,9 @@ func (l *voidLog) Errorf(string, ...interface{}) {}
 
 type coms struct {
 	Logger
-	dc chan struct{}
-	sd error
+	ErrShutdown error
+
+	donec chan struct{}
 }
 
 func newComs(log Logger) *coms {
@@ -32,17 +33,21 @@ func newComs(log Logger) *coms {
 	}
 
 	return &coms{
-		Logger: log,
-		dc:     make(chan struct{}),
-		sd:     errors.New("shutting down"),
+		Logger:      log,
+		ErrShutdown: errors.New("shutting down"),
+		donec:       make(chan struct{}),
 	}
+}
+
+func (c *coms) done() <-chan struct{} {
+	return c.donec
 }
 
 func (c *coms) close() {
 	select {
-	case <-c.dc:
+	case <-c.donec:
 	default:
-		close(c.dc)
+		close(c.donec)
 	}
 }
 

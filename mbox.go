@@ -9,8 +9,8 @@ import (
 
 func mailboxInfos(s *session, name string) ([]*imap.MailboxInfo, error) {
 	select {
-	case <-s.dc:
-		return nil, s.sd
+	case <-s.done():
+		return nil, s.ErrShutdown
 	default:
 	}
 
@@ -23,7 +23,7 @@ func mailboxInfos(s *session, name string) ([]*imap.MailboxInfo, error) {
 	defer close(ec)
 
 	go func() {
-		ec <- s.c.List("", listArg(name, s.dlm), ic)
+		ec <- s.cl.List("", listArg(name, s.dlm), ic)
 	}()
 
 	var mis []*imap.MailboxInfo
@@ -64,8 +64,8 @@ func addMissingBoxes(s *session, mis []*imap.MailboxInfo) error {
 
 func addMissingBox(s *session, dstMis []*imap.MailboxInfo, srcMi *imap.MailboxInfo) error {
 	select {
-	case <-s.dc:
-		return s.sd
+	case <-s.done():
+		return s.ErrShutdown
 	default:
 	}
 
@@ -77,7 +77,7 @@ func addMissingBox(s *session, dstMis []*imap.MailboxInfo, srcMi *imap.MailboxIn
 		}
 	}
 
-	return s.c.Create(dstName)
+	return s.cl.Create(dstName)
 }
 
 func drainMailboxInfo(c chan *imap.MailboxInfo, ec chan error) {

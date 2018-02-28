@@ -13,28 +13,28 @@ type sessionConfig struct {
 
 type session struct {
 	*coms
-	c   *client.Client
+	cl  *client.Client
 	dlm string
 	fid string
-	cf  sessionConfig
+	cnf sessionConfig
 }
 
-func newSession(cs *coms, id string, cf sessionConfig) (*session, error) {
+func newSession(cs *coms, id string, cnf sessionConfig) (*session, error) {
 	s := &session{
 		coms: cs,
-		cf:   cf,
+		cnf:  cnf,
 		fid:  fmt.Sprintf("%s: ", id),
 	}
 
 	if err := s.dial(); err != nil {
 		return nil, err
 	}
-	s.logf("connected to %s on port %s", s.cf.server, s.cf.port)
+	s.logf("connected to %s on port %s", s.cnf.server, s.cnf.port)
 
 	if err := s.login(); err != nil {
 		return nil, err
 	}
-	s.logf("logged in as %s", s.cf.account)
+	s.logf("logged in as %s", s.cnf.account)
 
 	if err := s.setDelim(); err != nil {
 		return nil, err
@@ -53,47 +53,47 @@ func (s *session) logerr(err error) {
 }
 
 func (s *session) close() {
-	if s.c != nil {
-		_ = s.c.Logout()
-		_ = s.c.Close()
+	if s.cl != nil {
+		_ = s.cl.Logout()
+		_ = s.cl.Close()
 	}
 }
 
 func (s *session) dial() error {
 	select {
-	case <-s.dc:
-		return s.sd
+	case <-s.done():
+		return s.ErrShutdown
 	default:
 	}
 
-	c, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cf.server, s.cf.port), nil)
+	c, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
 	if err != nil {
 		return err
 	}
 
-	s.c = c
+	s.cl = c
 
 	return nil
 }
 
 func (s *session) login() error {
 	select {
-	case <-s.dc:
-		return s.sd
+	case <-s.done():
+		return s.ErrShutdown
 	default:
 	}
 
-	if s.c == nil {
+	if s.cl == nil {
 		return fmt.Errorf("missing client in session")
 	}
 
-	return s.c.Login(s.cf.account, s.cf.password)
+	return s.cl.Login(s.cnf.account, s.cnf.password)
 }
 
 func (s *session) setDelim() error {
 	select {
-	case <-s.dc:
-		return s.sd
+	case <-s.done():
+		return s.ErrShutdown
 	default:
 	}
 
@@ -102,7 +102,7 @@ func (s *session) setDelim() error {
 	defer close(ec)
 
 	go func() {
-		ec <- s.c.List("", "", ic)
+		ec <- s.cl.List("", "", ic)
 	}()
 
 	for mi := range ic {
@@ -140,10 +140,5 @@ func (s *session) syncTo(dst *session) error {
 		return err
 	}
 
-	if err = <-ec; err != nil {
-		_ = err
-		return err
-	}
-
-	return nil
+	return <-ec
 }

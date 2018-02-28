@@ -11,8 +11,8 @@ type message struct {
 
 func msgFeed(s *session, mis []*imap.MailboxInfo, mc chan *message) error {
 	select {
-	case <-s.dc:
-		return s.sd
+	case <-s.done():
+		return s.ErrShutdown
 	default:
 	}
 
@@ -21,8 +21,8 @@ func msgFeed(s *session, mis []*imap.MailboxInfo, mc chan *message) error {
 
 func addMissingMsgs(s *session, mc chan *message) error {
 	select {
-	case <-s.dc:
-		return s.sd
+	case <-s.done():
+		return s.ErrShutdown
 	default:
 	}
 
