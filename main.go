@@ -6,12 +6,15 @@ import (
 )
 
 func main() {
+	// wire into system signals and ignore during startup
 	sm := sigmon.New(nil)
 	sm.Run()
 
+	// setup logging and main circuit breaker
 	cs := newComs(logrus.New())
 	trip := tripFn(cs)
 
+	// configure shutdown sequence
 	sm.Set(func(s *sigmon.SignalMonitor) {
 		cs.close()
 	})
@@ -35,14 +38,17 @@ func main() {
 		password: "invalid",
 	}
 
+	// setup bonded session
 	bs, err := newBondedSession(cs, 11, dstConf, srcConf)
 	trip(err)
 	defer bs.close()
 
+	// run sync procedure
 	trip(bs.sync())
 
 	cs.Info("goodbye")
 
+	// disconnect from system signals
 	sm.Stop()
 	// TODO: add flag to control concurrency
 	// TODO: add flag(s) to restrict message handling to span (i.e. "after", "before")
