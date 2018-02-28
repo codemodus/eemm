@@ -1,64 +1,58 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"os"
-	"sync"
-
-	"github.com/sirupsen/logrus"
 )
 
-type coms struct {
-	ic chan string
-	ec chan error
-	dc chan struct{}
-	wg *sync.WaitGroup
+// Logger describes basic logging functions.
+type Logger interface {
+	Info(...interface{})
+	Infof(string, ...interface{})
+	Error(...interface{})
+	Errorf(string, ...interface{})
 }
 
-func newComs() *coms {
+type voidLog struct{}
+
+func (l *voidLog) Info(...interface{})           {}
+func (l *voidLog) Infof(string, ...interface{})  {}
+func (l *voidLog) Error(...interface{})          {}
+func (l *voidLog) Errorf(string, ...interface{}) {}
+
+type coms struct {
+	Logger
+	dc chan struct{}
+	sd error
+}
+
+func newComs(log Logger) *coms {
+	if log == nil {
+		log = &voidLog{}
+	}
+
 	return &coms{
-		ic: make(chan string),
-		ec: make(chan error),
-		dc: make(chan struct{}),
-		wg: &sync.WaitGroup{},
+		Logger: log,
+		dc:     make(chan struct{}),
+		sd:     errors.New("shutting down"),
+	}
+}
+
+func (c *coms) close() {
+	select {
+	case <-c.dc:
+	default:
+		close(c.dc)
 	}
 }
 
 func tripFn(cs *coms) func(error) {
 	return func(err error) {
 		if err != nil {
-			cs.ec <- fmt.Errorf("TRIPPED: %s", err)
-			cs.ec <- fmt.Errorf("i'm melting! melting! oh, what a world! what a world!")
-			select {
-			case <-cs.dc:
-			default:
-				close(cs.dc)
-			}
-
-			cs.wg.Wait()
+			cs.Errorf("TRIPPED: %s", err)
+			cs.Error("i'm melting! melting! oh, what a world! what a world!-")
 
 			os.Exit(1)
 		}
 	}
-}
-
-func log(cs *coms) {
-	l := logrus.New()
-
-	cs.wg.Add(1)
-
-	go func() {
-		defer cs.wg.Done()
-
-		for {
-			select {
-			case i := <-cs.ic:
-				l.Info(i)
-			case e := <-cs.ec:
-				l.Error(e)
-			case <-cs.dc:
-				return
-			}
-		}
-	}()
 }

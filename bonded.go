@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -37,11 +36,11 @@ func newBondedSession(cs *coms, id int, dstConf, srcConf sessionConfig) (*bonded
 }
 
 func (s *bondedSession) logf(format string, args ...interface{}) {
-	s.ic <- fmt.Sprintf(s.fid+format, args...)
+	s.Infof(s.fid+format, args...)
 }
 
 func (s *bondedSession) logerr(err error) {
-	s.ec <- errors.New(s.fid + err.Error())
+	s.Error(s.fid + err.Error())
 }
 
 func (s *bondedSession) close() {

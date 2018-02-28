@@ -8,6 +8,12 @@ import (
 )
 
 func mailboxInfos(s *session, name string) ([]*imap.MailboxInfo, error) {
+	select {
+	case <-s.dc:
+		return nil, s.sd
+	default:
+	}
+
 	if err := checkDepth(name, s.dlm); err != nil {
 		return nil, err
 	}
@@ -21,56 +27,63 @@ func mailboxInfos(s *session, name string) ([]*imap.MailboxInfo, error) {
 	}()
 
 	var mis []*imap.MailboxInfo
-	var anyErr bool
 
 	for mi := range ic {
 		mis = append(mis, mi)
 
 		children, err := mailboxInfos(s, mi.Name)
 		if err != nil {
-			s.logerr(err)
-			anyErr = true
-
-			continue
+			drainMailboxInfo(ic, ec)
+			return nil, err
 		}
 
 		mis = append(mis, children...)
 	}
 
-	if anyErr {
-		return nil, fmt.Errorf("cannot recurse boxes; check log")
+	if err := <-ec; err != nil {
+		return nil, err
 	}
 
-	return mis, <-ec
+	return mis, nil
 }
 
 func addMissingBoxes(s *session, mis []*imap.MailboxInfo) error {
-	curMis, err := mailboxInfos(s, "")
+	dstMis, err := mailboxInfos(s, "")
 	if err != nil {
 		return err
 	}
 
 	for _, mi := range mis {
-		name := delimAdjustedName(mi, s.dlm)
-		var found bool
-
-		for _, curMi := range curMis {
-			if curMi.Name == name {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			continue
-		}
-
-		if err := s.c.Create(name); err != nil {
+		if err := addMissingBox(s, dstMis, mi); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func addMissingBox(s *session, dstMis []*imap.MailboxInfo, srcMi *imap.MailboxInfo) error {
+	select {
+	case <-s.dc:
+		return s.sd
+	default:
+	}
+
+	dstName := delimAdjustedName(srcMi, s.dlm)
+
+	for _, dstMi := range dstMis {
+		if dstMi.Name == dstName {
+			return nil
+		}
+	}
+
+	return s.c.Create(dstName)
+}
+
+func drainMailboxInfo(c chan *imap.MailboxInfo, ec chan error) {
+	for range c {
+	}
+	<-ec
 }
 
 func delimAdjustedName(mi *imap.MailboxInfo, delim string) string {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	imap "github.com/emersion/go-imap"
@@ -46,11 +45,11 @@ func newSession(cs *coms, id string, cf sessionConfig) (*session, error) {
 }
 
 func (s *session) logf(format string, args ...interface{}) {
-	s.ic <- fmt.Sprintf(s.fid+format, args...)
+	s.Infof(s.fid+format, args...)
 }
 
 func (s *session) logerr(err error) {
-	s.ec <- errors.New(s.fid + err.Error())
+	s.Error(s.fid + err.Error())
 }
 
 func (s *session) close() {
@@ -61,6 +60,12 @@ func (s *session) close() {
 }
 
 func (s *session) dial() error {
+	select {
+	case <-s.dc:
+		return s.sd
+	default:
+	}
+
 	c, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cf.server, s.cf.port), nil)
 	if err != nil {
 		return err
@@ -72,6 +77,12 @@ func (s *session) dial() error {
 }
 
 func (s *session) login() error {
+	select {
+	case <-s.dc:
+		return s.sd
+	default:
+	}
+
 	if s.c == nil {
 		return fmt.Errorf("missing client in session")
 	}
@@ -80,6 +91,12 @@ func (s *session) login() error {
 }
 
 func (s *session) setDelim() error {
+	select {
+	case <-s.dc:
+		return s.sd
+	default:
+	}
+
 	ic := make(chan *imap.MailboxInfo, 10)
 	ec := make(chan error)
 	defer close(ec)

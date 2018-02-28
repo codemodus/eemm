@@ -1,13 +1,24 @@
 package main
 
-func main() {
-	cs := newComs()
-	trip := tripFn(cs)
-	log(cs)
+import (
+	"github.com/codemodus/sigmon"
+	"github.com/sirupsen/logrus"
+)
 
-	cs.ic <- "hello"
+func main() {
+	sm := sigmon.New(nil)
+	sm.Run()
+
+	cs := newComs(logrus.New())
+	trip := tripFn(cs)
+
+	sm.Set(func(s *sigmon.SignalMonitor) {
+		cs.close()
+	})
+
+	cs.Info("hello")
 	// TODO: add sub-command for migration
-	cs.ic <- "starting migration tool"
+	cs.Info("starting migration tool")
 
 	// TODO: config = slice of dstCnf/srcCnf pairs
 	dstConf := sessionConfig{
@@ -30,8 +41,9 @@ func main() {
 
 	trip(bs.sync())
 
-	cs.ic <- "goodbye"
+	cs.Info("goodbye")
 
+	sm.Stop()
 	// TODO: add flag to control concurrency
 	// TODO: add flag(s) to restrict message handling to span (i.e. "after", "before")
 
