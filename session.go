@@ -113,13 +113,13 @@ func (s *session) setDelim() error {
 }
 
 func (s *session) syncTo(dst *session) error {
-	mis, err := mailboxInfos(s, "")
+	srcMis, err := mailboxInfos(s, "")
 	if err != nil {
 		return err
 	}
 	s.logf("obtained mailbox info")
 
-	if err = addMissingBoxes(dst, mis); err != nil {
+	if err = addMissingBoxes(dst, srcMis); err != nil {
 		return err
 	}
 	dst.logf("normalized mailboxes")
@@ -129,16 +129,33 @@ func (s *session) syncTo(dst *session) error {
 		return nil
 	}
 
-	mc := make(chan *message)
-	ec := make(chan error)
-
-	go func() {
-		ec <- msgFeed(s, mis, mc)
-	}()
-
-	if err = addMissingMsgs(dst, mc); err != nil {
+	dstMis, err := mailboxInfos(s, "")
+	if err != nil {
 		return err
 	}
 
-	return <-ec
+	for _, mi := range dstMis {
+		hs, err := msgHashes(dst, mi.Name)
+		if err != nil {
+			return err
+		}
+
+		mc := make(chan *message)
+		ec := make(chan error)
+		defer close(ec)
+
+		go func() {
+			ec <- missingMsgsFeed(s, mi, hs, mc)
+		}()
+
+		if err = addMsgs(dst, mi.Name, mc); err != nil {
+			return err
+		}
+
+		if err = <-ec; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

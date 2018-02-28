@@ -4,12 +4,14 @@ import (
 	imap "github.com/emersion/go-imap"
 )
 
+type hashLookup map[string]struct{}
+
 type message struct {
 	mailbox string
 	*imap.Message
 }
 
-func msgFeed(s *session, mis []*imap.MailboxInfo, mc chan *message) error {
+func missingMsgsFeed(s *session, mi *imap.MailboxInfo, hashes hashLookup, mc chan *message) error {
 	select {
 	case <-s.done():
 		return s.ErrShutdown
@@ -19,7 +21,11 @@ func msgFeed(s *session, mis []*imap.MailboxInfo, mc chan *message) error {
 	return nil
 }
 
-func addMissingMsgs(s *session, mc chan *message) error {
+func msgHashes(s *session, name string) (hashLookup, error) {
+	return nil, nil
+}
+
+func addMsgs(s *session, name string, mc chan *message) error {
 	select {
 	case <-s.done():
 		return s.ErrShutdown
