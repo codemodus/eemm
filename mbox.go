@@ -8,10 +8,8 @@ import (
 )
 
 func mailboxInfos(s *session, name string) ([]*imap.MailboxInfo, error) {
-	select {
-	case <-s.done():
-		return nil, s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return nil, err
 	}
 
 	if err := checkDepth(name, s.dlm); err != nil {
@@ -63,10 +61,8 @@ func addMissingBoxes(s *session, mis []*imap.MailboxInfo) error {
 }
 
 func addMissingBox(s *session, dstMis []*imap.MailboxInfo, srcMi *imap.MailboxInfo) error {
-	select {
-	case <-s.done():
-		return s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return err
 	}
 
 	dstName := delimAdjustedName(srcMi, s.dlm)

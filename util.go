@@ -5,6 +5,10 @@ import (
 	"os"
 )
 
+var (
+	errShutdown = errors.New("shutting down")
+)
+
 // Logger describes basic logging functions.
 type Logger interface {
 	Info(...interface{})
@@ -22,8 +26,6 @@ func (l *voidLog) Errorf(string, ...interface{}) {}
 
 type coms struct {
 	Logger
-	ErrShutdown error
-
 	donec chan struct{}
 }
 
@@ -33,14 +35,18 @@ func newComs(log Logger) *coms {
 	}
 
 	return &coms{
-		Logger:      log,
-		ErrShutdown: errors.New("shutting down"),
-		donec:       make(chan struct{}),
+		Logger: log,
+		donec:  make(chan struct{}),
 	}
 }
 
-func (c *coms) done() <-chan struct{} {
-	return c.donec
+func (c *coms) term() error {
+	select {
+	case <-c.donec:
+		return errShutdown
+	default:
+		return nil
+	}
 }
 
 func (c *coms) close() {

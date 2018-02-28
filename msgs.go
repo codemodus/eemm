@@ -12,11 +12,11 @@ type message struct {
 }
 
 func missingMsgsFeed(s *session, mi *imap.MailboxInfo, hashes hashLookup, mc chan *message) error {
-	select {
-	case <-s.done():
-		return s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return err
 	}
+
+	_ = s
 
 	return nil
 }
@@ -26,11 +26,11 @@ func msgHashes(s *session, name string) (hashLookup, error) {
 }
 
 func addMsgs(s *session, name string, mc chan *message) error {
-	select {
-	case <-s.done():
-		return s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return err
 	}
+
+	_ = s
 
 	return nil
 }

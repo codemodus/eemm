@@ -60,10 +60,8 @@ func (s *session) close() {
 }
 
 func (s *session) dial() error {
-	select {
-	case <-s.done():
-		return s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return err
 	}
 
 	c, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
@@ -77,10 +75,8 @@ func (s *session) dial() error {
 }
 
 func (s *session) login() error {
-	select {
-	case <-s.done():
-		return s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return err
 	}
 
 	if s.cl == nil {
@@ -91,10 +87,8 @@ func (s *session) login() error {
 }
 
 func (s *session) setDelim() error {
-	select {
-	case <-s.done():
-		return s.ErrShutdown
-	default:
+	if err := s.term(); err != nil {
+		return err
 	}
 
 	ic := make(chan *imap.MailboxInfo, 10)
