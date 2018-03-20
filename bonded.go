@@ -11,26 +11,25 @@ type bondedSession struct {
 	src *session
 }
 
+// surface
 func newBondedSession(cs *coms, id int, dstConf, srcConf sessionConfig) (*bondedSession, error) {
 	bs := &bondedSession{
 		coms: cs,
 		fid:  fmt.Sprintf(" %03dBSS: ", id),
 	}
-	bs.logf("%s(%s) from %s(%s)", dstConf.account, dstConf.server, srcConf.account, srcConf.server)
+	bs.logf("bonding to %s(%s) from %s(%s)", dstConf.account, dstConf.server, srcConf.account, srcConf.server)
 
 	dst, err := newSession(cs, fmt.Sprintf("   %03ddst", id), dstConf)
 	if err != nil {
 		return nil, err
 	}
 	bs.dst = dst
-	bs.logf("established session for destination")
 
 	src, err := newSession(cs, fmt.Sprintf("     %03dsrc", id), srcConf)
 	if err != nil {
 		return nil, err
 	}
 	bs.src = src
-	bs.logf("established session for source (%s)", src.cnf.account)
 
 	return bs, nil
 }
@@ -53,6 +52,13 @@ func (s *bondedSession) close() {
 	}
 }
 
+// surface
 func (s *bondedSession) regularize() error {
-	return s.src.regularize(s.dst)
+	s.logf("regularizing mailboxes")
+	if err := s.src.regularize(s.dst); err != nil {
+		s.logerr(fmt.Errorf("cannot regularize mailboxes"))
+		return err
+	}
+
+	return nil
 }

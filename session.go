@@ -19,6 +19,7 @@ type session struct {
 	cnf sessionConfig
 }
 
+// surface
 func newSession(cs *coms, id string, cnf sessionConfig) (*session, error) {
 	s := &session{
 		coms: cs,
@@ -26,20 +27,17 @@ func newSession(cs *coms, id string, cnf sessionConfig) (*session, error) {
 		fid:  fmt.Sprintf("%s: ", id),
 	}
 
+	s.logf("connecting to %s on port %s", s.cnf.server, s.cnf.port)
 	if err := s.dial(); err != nil {
+		s.logerr(err)
 		return nil, err
 	}
-	s.logf("connected to %s on port %s", s.cnf.server, s.cnf.port)
 
+	s.logf("logging in as %s", s.cnf.account)
 	if err := s.login(); err != nil {
+		s.logerr(err)
 		return nil, err
 	}
-	s.logf("logged in as %s", s.cnf.account)
-
-	if err := s.setDelim(); err != nil {
-		return nil, err
-	}
-	s.logf("obtained delimiter")
 
 	return s, nil
 }
@@ -64,6 +62,17 @@ func (s *session) dial() error {
 		return err
 	}
 
+	if s.cnf.port != "993" {
+		c, err := client.Dial(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port))
+		if err != nil {
+			return err
+		}
+
+		s.cl = c
+
+		return nil
+	}
+
 	c, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
 	if err != nil {
 		return err
@@ -83,7 +92,11 @@ func (s *session) login() error {
 		return fmt.Errorf("missing client in session")
 	}
 
-	return s.cl.Login(s.cnf.account, s.cnf.password)
+	if err := s.cl.Login(s.cnf.account, s.cnf.password); err != nil {
+		return err
+	}
+
+	return s.setDelim()
 }
 
 func (s *session) setDelim() error {
@@ -106,17 +119,20 @@ func (s *session) setDelim() error {
 	return <-ec
 }
 
+// surface
 func (s *session) regularize(dst *session) error {
+	s.logf("obtaining mailbox info")
 	srcMis, err := mailboxInfos(s, "")
 	if err != nil {
+		s.logerr(err)
 		return err
 	}
-	s.logf("obtained mailbox info")
 
+	dst.logf("regularizing mailboxes")
 	if err = addMissingBoxes(dst, srcMis); err != nil {
+		s.logerr(err)
 		return err
 	}
-	dst.logf("regularized mailboxes")
 
 	if true {
 		// die for now
