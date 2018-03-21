@@ -11,42 +11,23 @@ func main() {
 	sm.Run()
 
 	// setup logging and main circuit breaker
-	cs := newComs(logrus.New())
-	trip := tripFn(cs)
+	l := logrus.New()
+	cs := newComs()
+	trip := tripFn(cs, l)
+	_ = trip
 
 	// configure shutdown sequence
 	sm.Set(func(s *sigmon.SignalMonitor) {
 		cs.close()
 	})
 
-	cs.Info("hello")
+	l.Info("hello")
 	// TODO: add sub-command for migration
-	cs.Info("starting migration tool")
+	l.Info("starting migration tool")
 
-	// TODO: config = slice of dstCnf/srcCnf pairs
-	dstConf := sessionConfig{
-		server:   "mail.host.invalid",
-		port:     "993",
-		account:  "dst@example.com",
-		password: "invalid",
-	}
+	replicate(cs, l)
 
-	srcConf := sessionConfig{
-		server:   "mail.host.invalid",
-		port:     "993",
-		account:  "src@example.com",
-		password: "invalid",
-	}
-
-	// setup bonded session
-	bs, err := newBondedSession(cs, 11, dstConf, srcConf)
-	trip(err)
-	defer bs.close()
-
-	// run regularization procedure
-	trip(bs.regularize())
-
-	cs.Info("goodbye")
+	l.Info("goodbye")
 
 	// disconnect from system signals
 	sm.Stop()

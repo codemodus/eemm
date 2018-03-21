@@ -7,51 +7,48 @@ import (
 	"github.com/emersion/go-imap/client"
 )
 
+type imapClient struct {
+	*client.Client
+	delim string
+}
+
 type sessionConfig struct {
-	server, port, account, password string
+	server   string
+	port     string
+	account  string
+	password string
 }
 
 type session struct {
 	*coms
-	cl  *client.Client
-	dlm string
-	fid string
 	cnf sessionConfig
+	cl  *imapClient
 }
 
-// surface
-func newSession(cs *coms, id string, cnf sessionConfig) (*session, error) {
+func newSession(cs *coms, cnf sessionConfig) (*session, error) {
 	s := &session{
 		coms: cs,
 		cnf:  cnf,
-		fid:  fmt.Sprintf("%s: ", id),
+		cl:   &imapClient{},
 	}
 
-	s.logf("connecting to %s on port %s", s.cnf.server, s.cnf.port)
 	if err := s.dial(); err != nil {
-		s.logerr(err)
-		return nil, err
+		return nil, fmt.Errorf("cannot dial into %s on %s: %s", cnf.port, cnf.server, err)
 	}
 
-	s.logf("logging in as %s", s.cnf.account)
 	if err := s.login(); err != nil {
-		s.logerr(err)
-		return nil, err
+		return nil, fmt.Errorf("cannot login as %s: %s", cnf.account, err)
+	}
+
+	if err := s.setDelim(); err != nil {
+		return nil, fmt.Errorf("cannot set delimiter: %s", err)
 	}
 
 	return s, nil
 }
 
-func (s *session) logf(format string, args ...interface{}) {
-	s.Infof(s.fid+format, args...)
-}
-
-func (s *session) logerr(err error) {
-	s.Error(s.fid + err.Error())
-}
-
 func (s *session) close() {
-	if s.cl != nil {
+	if s.cl.Client != nil {
 		_ = s.cl.Logout()
 		_ = s.cl.Close()
 	}
@@ -63,44 +60,54 @@ func (s *session) dial() error {
 	}
 
 	if s.cnf.port != "993" {
-		c, err := client.Dial(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port))
+		cl, err := client.Dial(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port))
 		if err != nil {
 			return err
 		}
 
-		s.cl = c
+		s.cl.Client = cl
 
 		return nil
 	}
 
-	c, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
+	cl, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
 	if err != nil {
 		return err
 	}
 
-	s.cl = c
+	s.cl.Client = cl
+
+	return nil
+}
+
+func (s *session) ensureClient() error {
+	if err := s.term(); err != nil {
+		return err
+	}
+
+	// TODO: implement ensureClient correctly
+	if s.cl == nil || s.cl.Client == nil {
+		return fmt.Errorf("missing client in session")
+	}
 
 	return nil
 }
 
 func (s *session) login() error {
-	if err := s.term(); err != nil {
+	if err := s.ensureClient(); err != nil {
 		return err
 	}
 
-	if s.cl == nil {
-		return fmt.Errorf("missing client in session")
-	}
+	return s.cl.Login(s.cnf.account, s.cnf.password)
+}
 
-	if err := s.cl.Login(s.cnf.account, s.cnf.password); err != nil {
-		return err
-	}
-
-	return s.setDelim()
+func (s *session) ensureLogin() error {
+	// TODO: implement ensureLogin correctly
+	return s.ensureClient()
 }
 
 func (s *session) setDelim() error {
-	if err := s.term(); err != nil {
+	if err := s.ensureLogin(); err != nil {
 		return err
 	}
 
@@ -113,59 +120,44 @@ func (s *session) setDelim() error {
 	}()
 
 	for mi := range ic {
-		s.dlm = mi.Delimiter
+		s.cl.delim = mi.Delimiter
 	}
 
 	return <-ec
 }
 
-// surface
-func (s *session) regularize(dst *session) error {
-	s.logf("obtaining mailbox info")
-	srcMis, err := mailboxInfos(s, "")
+func (s *session) replicateMailboxes(dst *session) ([]*imap.MailboxInfo, error) {
+	if err := s.ensureLogin(); err != nil {
+		return nil, err
+	}
+
+	srcMis, err := mailboxInfos(s.cl, "")
 	if err != nil {
-		s.logerr(err)
-		return err
+		return nil, err
 	}
 
-	dst.logf("regularizing mailboxes")
-	if err = addMissingBoxes(dst, srcMis); err != nil {
-		s.logerr(err)
-		return err
+	if err = dst.ensureLogin(); err != nil {
+		return nil, err
 	}
 
-	if true {
-		// die for now
-		return nil
-	}
-
-	dstMis, err := mailboxInfos(s, "")
+	dstMis, err := mailboxInfos(dst.cl, "")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, mi := range dstMis {
-		hs, err := msgHashes(dst, mi.Name)
-		if err != nil {
-			return err
+	for k, mi := range srcMis {
+		if err := s.term(); err != nil {
+			return srcMis[:k], err
 		}
 
-		mc := make(chan *message)
-		ec := make(chan error)
-		defer close(ec)
-
-		go func() {
-			ec <- missingMsgsFeed(s, mi, hs, mc)
-		}()
-
-		if err = addMsgs(dst, mi.Name, mc); err != nil {
-			return err
-		}
-
-		if err = <-ec; err != nil {
-			return err
+		if err := addMissingBox(dst.cl, dstMis, mi); err != nil {
+			return srcMis[:k], err
 		}
 	}
 
+	return srcMis, nil
+}
+
+func (s *session) replicateMessages(dst *session, mis []*imap.MailboxInfo) error {
 	return nil
 }

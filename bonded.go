@@ -2,44 +2,34 @@ package main
 
 import (
 	"fmt"
+
+	imap "github.com/emersion/go-imap"
 )
 
 type bondedSession struct {
 	*coms
-	fid string
 	dst *session
 	src *session
 }
 
-// surface
-func newBondedSession(cs *coms, id int, dstConf, srcConf sessionConfig) (*bondedSession, error) {
-	bs := &bondedSession{
+func makeBondedSession(cs *coms, dstConf, srcConf sessionConfig) (bondedSession, error) {
+	bs := bondedSession{
 		coms: cs,
-		fid:  fmt.Sprintf(" %03dBSS: ", id),
 	}
-	bs.logf("bonding to %s(%s) from %s(%s)", dstConf.account, dstConf.server, srcConf.account, srcConf.server)
 
-	dst, err := newSession(cs, fmt.Sprintf("   %03ddst", id), dstConf)
+	dst, err := newSession(cs, dstConf)
 	if err != nil {
-		return nil, err
+		return bs, fmt.Errorf("cannot create destination session: %s", err)
 	}
 	bs.dst = dst
 
-	src, err := newSession(cs, fmt.Sprintf("     %03dsrc", id), srcConf)
+	src, err := newSession(cs, srcConf)
 	if err != nil {
-		return nil, err
+		return bs, fmt.Errorf("cannot create source session: %s", err)
 	}
 	bs.src = src
 
 	return bs, nil
-}
-
-func (s *bondedSession) logf(format string, args ...interface{}) {
-	s.Infof(s.fid+format, args...)
-}
-
-func (s *bondedSession) logerr(err error) {
-	s.Error(s.fid + err.Error())
 }
 
 func (s *bondedSession) close() {
@@ -52,13 +42,10 @@ func (s *bondedSession) close() {
 	}
 }
 
-// surface
-func (s *bondedSession) regularize() error {
-	s.logf("regularizing mailboxes")
-	if err := s.src.regularize(s.dst); err != nil {
-		s.logerr(fmt.Errorf("cannot regularize mailboxes"))
-		return err
-	}
+func (s *bondedSession) replicateMailboxes() ([]*imap.MailboxInfo, error) {
+	return s.src.replicateMailboxes(s.dst)
+}
 
-	return nil
+func (s *bondedSession) replicateMessages(mis []*imap.MailboxInfo) error {
+	return s.src.replicateMessages(s.dst, mis)
 }

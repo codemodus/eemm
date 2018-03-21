@@ -9,34 +9,13 @@ var (
 	errShutdown = errors.New("shutting down")
 )
 
-// Logger describes basic logging functions.
-type Logger interface {
-	Info(...interface{})
-	Infof(string, ...interface{})
-	Error(...interface{})
-	Errorf(string, ...interface{})
-}
-
-type voidLog struct{}
-
-func (l *voidLog) Info(...interface{})           {}
-func (l *voidLog) Infof(string, ...interface{})  {}
-func (l *voidLog) Error(...interface{})          {}
-func (l *voidLog) Errorf(string, ...interface{}) {}
-
 type coms struct {
-	Logger
 	donec chan struct{}
 }
 
-func newComs(log Logger) *coms {
-	if log == nil {
-		log = &voidLog{}
-	}
-
+func newComs() *coms {
 	return &coms{
-		Logger: log,
-		donec:  make(chan struct{}),
+		donec: make(chan struct{}),
 	}
 }
 
@@ -57,11 +36,13 @@ func (c *coms) close() {
 	}
 }
 
-func tripFn(cs *coms) func(error) {
+func tripFn(c *coms, l Logger) func(error) {
 	return func(err error) {
 		if err != nil {
-			cs.Errorf("TRIPPED: %s", err)
-			cs.Error("i'm melting! melting! oh, what a world! what a world!-")
+			c.close()
+
+			l.Errorf("TRIPPED: %s", err)
+			l.Error("i'm melting! melting! oh, what a world! what a world!-")
 
 			os.Exit(1)
 		}
