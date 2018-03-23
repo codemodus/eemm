@@ -127,37 +127,63 @@ func (s *session) setDelim() error {
 }
 
 func (s *session) replicateMailboxes(dst *session) ([]*imap.MailboxInfo, error) {
-	if err := s.ensureLogin(); err != nil {
+	if err := ensureLogins(dst, s); err != nil {
 		return nil, err
 	}
 
-	srcMis, err := mailboxInfos(s.cl, "")
+	mis, err := missingMailboxInfos(dst.cl, s.cl)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = dst.ensureLogin(); err != nil {
-		return nil, err
-	}
-
-	dstMis, err := mailboxInfos(dst.cl, "")
-	if err != nil {
-		return nil, err
-	}
-
-	for k, mi := range srcMis {
+	for k, mi := range mis {
 		if err := s.term(); err != nil {
-			return srcMis[:k], err
+			return mis[:k], err
 		}
 
-		if err := addMissingBox(dst.cl, dstMis, mi); err != nil {
-			return srcMis[:k], err
+		if err := addMailbox(dst.cl, mi); err != nil {
+			return mis[:k], err
 		}
 	}
 
-	return srcMis, nil
+	return mis, nil
 }
 
-func (s *session) replicateMessages(dst *session, mis []*imap.MailboxInfo) error {
+func (s *session) replicateMessages(dst *session) error {
+	if err := ensureLogins(dst, s); err != nil {
+		return err
+	}
+
+	mis, err := mailboxInfos(s.cl, "")
+	if err != nil {
+		return err
+	}
+
+	for _, mi := range mis {
+		uids, err := missingUIDs(dst.cl, s.cl, mi)
+		if err != nil {
+			return err
+		}
+
+		for _, uc := range uniqIDs(uids).chunks(32) {
+			fms, err := messages(s.donec, s.cl, uc)
+			if err != nil {
+				return err
+			}
+
+			if err = addMsgs(s.donec, dst.cl, mi, fms); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
+}
+
+func ensureLogins(dst, src *session) error {
+	if err := src.ensureLogin(); err != nil {
+		return err
+	}
+
+	return dst.ensureLogin()
 }

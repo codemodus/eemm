@@ -41,14 +41,39 @@ func mailboxInfos(cl *imapClient, name string) ([]*imap.MailboxInfo, error) {
 	return mis, nil
 }
 
-func addMissingBox(cl *imapClient, dstMis []*imap.MailboxInfo, srcMi *imap.MailboxInfo) error {
-	dstName := delimAdjustedName(srcMi, cl.delim)
+func missingMailboxInfos(dst, src *imapClient) ([]*imap.MailboxInfo, error) {
+	srcMis, err := mailboxInfos(src, "")
+	if err != nil {
+		return nil, err
+	}
 
-	for _, dstMi := range dstMis {
-		if dstMi.Name == dstName {
-			return nil
+	dstMis, err := mailboxInfos(dst, "")
+	if err != nil {
+		return nil, err
+	}
+
+	mis := srcMis[:0]
+
+	for _, smi := range srcMis {
+		found := false
+
+		for _, dmi := range dstMis {
+			if smi.Name == delimAdjustedName(dmi, src.delim) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			mis = append(mis, smi)
 		}
 	}
+
+	return mis, nil
+}
+
+func addMailbox(cl *imapClient, srcMi *imap.MailboxInfo) error {
+	dstName := delimAdjustedName(srcMi, cl.delim)
 
 	return cl.Create(dstName)
 }

@@ -46,6 +46,6 @@ func (s *bondedSession) replicateMailboxes() ([]*imap.MailboxInfo, error) {
 	return s.src.replicateMailboxes(s.dst)
 }
 
-func (s *bondedSession) replicateMessages(mis []*imap.MailboxInfo) error {
-	return s.src.replicateMessages(s.dst, mis)
+func (s *bondedSession) replicateMessages() error {
+	return s.src.replicateMessages(s.dst)
 }

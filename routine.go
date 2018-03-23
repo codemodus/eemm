@@ -10,7 +10,6 @@ func replicate(cs *coms, l Logger) {
 		account:  "dst@example.com",
 		password: "invalid",
 	}
-
 	srcConf := sessionConfig{
 		server:   "mail.host.invalid",
 		port:     "993",
@@ -29,14 +28,13 @@ func replicate(cs *coms, l Logger) {
 	defer bs.close()
 
 	tl.logf("replicating mailboxes")
-	mis, err := bs.replicateMailboxes()
-	if err != nil {
+	if _, err := bs.replicateMailboxes(); err != nil {
 		tl.logerr(fmt.Errorf("cannot replicate mailboxes: %s", err))
 		return
 	}
 
 	tl.logf("replicating messages")
-	if err := bs.replicateMessages(mis); err != nil {
+	if err := bs.replicateMessages(); err != nil {
 		tl.logerr(fmt.Errorf("cannot replicate messages: %s", err))
 		return
 	}
