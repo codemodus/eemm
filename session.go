@@ -165,8 +165,8 @@ func (s *session) replicateMessages(dst *session) error {
 			return err
 		}
 
-		for _, uc := range uniqIDs(uids).chunks(32) {
-			fms, err := messages(s.donec, s.cl, uc)
+		for _, seq := range uniqIDs(uids).chunks(32) {
+			fms, err := messages(s.donec, s.cl, mi, seq)
 			if err != nil {
 				return err
 			}
