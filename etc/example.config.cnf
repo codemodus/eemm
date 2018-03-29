@@ -1,0 +1,10 @@
+[[Repl.Groups]]
+    DstSrvrport = ["mail.destination.test", "4493"]
+    SrcSrvrport = ["mail.source.test"] # omitted ports will default to 993
+
+    [[Repl.Groups.Accounts]]
+        DstAcctpass =  ["username", "password"]
+        SrcAcctpass = ["user@domain.test", "userpass"]
+    [[Repl.Groups.Accounts]]
+        DstAcctpass =  ["other@domain.test", "otherpass"]
+        # omitted source account details will be copied from destination

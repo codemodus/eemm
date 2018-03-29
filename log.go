@@ -22,14 +22,14 @@ type trackingLog struct {
 	prefix string
 }
 
-func makeTrackingLog(log Logger, prefix string, id int) trackingLog {
+func makeTrackingLog(log Logger, prefix string, id, ct int) trackingLog {
 	if log == nil {
 		log = &voidLog{}
 	}
 
 	return trackingLog{
 		Logger: log,
-		prefix: fmt.Sprintf(" %03d%s: ", id, prefix),
+		prefix: fmt.Sprintf("%02d-%s-%03d: ", id, prefix, ct),
 	}
 }
 

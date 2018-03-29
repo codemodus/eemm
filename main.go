@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"runtime"
+
 	"github.com/codemodus/sigmon"
 	"github.com/sirupsen/logrus"
 )
@@ -11,10 +14,29 @@ func main() {
 	sm.Run()
 
 	// setup logging and main circuit breaker
-	l := logrus.New()
+	var l Logger = logrus.New()
 	cs := newComs()
 	trip := tripFn(cs, l)
 	_ = trip
+
+	// load config
+	cnf, err := NewConf("config.cnf")
+	if err != nil {
+		if err == errFlagParse {
+			os.Exit(1)
+		}
+
+		trip(err)
+	}
+
+	// act on config vals
+	if !cnf.Main.verbose {
+		l = &voidLog{}
+	}
+	width := runtime.NumCPU() - cnf.Main.rsrvd
+	if width < 1 {
+		width = 1
+	}
 
 	// configure shutdown sequence
 	sm.Set(func(s *sigmon.SignalMonitor) {
@@ -22,18 +44,16 @@ func main() {
 	})
 
 	l.Info("hello")
-	// TODO: add sub-command for migration
-	l.Info("starting migration tool")
 
-	replicate(cs, l)
+	trip(
+		runReplication(cs, l, width, cnf.Repl),
+	)
 
 	l.Info("goodbye")
 
 	// disconnect from system signals
 	sm.Stop()
-	// TODO: add flag to control concurrency
-	// TODO: add flag(s) to restrict message handling to span (i.e. "after", "before")
 
+	// TODO: add flag(s) to restrict message handling to span (i.e. "after", "before")
 	// TODO: add sub-command for duplicate removal
-	// TODO: config = slice of dstCnf
 }
