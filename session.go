@@ -9,12 +9,14 @@ import (
 
 type imapClient struct {
 	*client.Client
-	delim string
+	delim    string
+	pathprfx string
 }
 
 type sessionConfig struct {
 	server   string
 	port     string
+	pathprfx string
 	account  string
 	password string
 }
@@ -29,7 +31,9 @@ func newSession(cs *coms, cnf sessionConfig) (*session, error) {
 	s := &session{
 		coms: cs,
 		cnf:  cnf,
-		cl:   &imapClient{},
+		cl: &imapClient{
+			pathprfx: cnf.pathprfx,
+		},
 	}
 
 	if err := s.dial(); err != nil {
@@ -48,10 +52,17 @@ func newSession(cs *coms, cnf sessionConfig) (*session, error) {
 }
 
 func (s *session) close() {
-	if s.cl.Client != nil {
-		_ = s.cl.Logout()
-		_ = s.cl.Close()
+	if s.cl.Client == nil {
+		return
 	}
+
+	if err := recover(); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	_ = s.cl.Logout()
+	_ = s.cl.Close()
 }
 
 func (s *session) dial() error {

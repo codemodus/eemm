@@ -20,12 +20,19 @@ func mailboxInfos(cl *imapClient, name string) ([]*imap.MailboxInfo, error) {
 		ec <- cl.List("", listArg(name, cl.delim), ic)
 	}()
 
+	pLen := len(cl.pathprfx)
 	var mis []*imap.MailboxInfo
 
 	for mi := range ic {
+		miName := mi.Name
+
+		if cl.pathprfx != "" && mi.Name[:pLen] == cl.pathprfx && len(mi.Name) > pLen {
+			mi.Name = mi.Name[pLen+1:]
+		}
+
 		mis = append(mis, mi)
 
-		children, err := mailboxInfos(cl, mi.Name)
+		children, err := mailboxInfos(cl, miName)
 		if err != nil {
 			drainMailboxInfo(ic, ec)
 			return nil, err
@@ -58,7 +65,7 @@ func missingMailboxInfos(dst, src *imapClient) ([]*imap.MailboxInfo, error) {
 		found := false
 
 		for _, dmi := range dstMis {
-			if smi.Name == delimAdjustedName(dmi, src.delim) {
+			if smi.Name == preppedName(dmi, src.delim, "") {
 				found = true
 				break
 			}
@@ -73,7 +80,7 @@ func missingMailboxInfos(dst, src *imapClient) ([]*imap.MailboxInfo, error) {
 }
 
 func addMailbox(cl *imapClient, srcMi *imap.MailboxInfo) error {
-	dstName := delimAdjustedName(srcMi, cl.delim)
+	dstName := preppedName(srcMi, cl.delim, cl.pathprfx)
 
 	return cl.Create(dstName)
 }
@@ -81,11 +88,21 @@ func addMailbox(cl *imapClient, srcMi *imap.MailboxInfo) error {
 func drainMailboxInfo(c chan *imap.MailboxInfo, ec chan error) {
 	for range c {
 	}
-	<-ec
+
+	select {
+	case <-ec:
+	default:
+	}
 }
 
-func delimAdjustedName(mi *imap.MailboxInfo, delim string) string {
-	return strings.Replace(mi.Name, mi.Delimiter, delim, -1)
+func preppedName(mi *imap.MailboxInfo, delim, pathprfx string) string {
+	s := strings.Replace(mi.Name, mi.Delimiter, delim, -1)
+
+	if pathprfx != "" {
+		s = pathprfx + delim + s
+	}
+
+	return s
 }
 
 func checkDepth(name, delim string) error {

@@ -1,33 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"sync"
 )
-
-type replConf struct {
-	fs  *flag.FlagSet
-	run bool
-
-	Groups []struct {
-		DstSrvrport [2]string
-		SrcSrvrport [2]string
-
-		Accounts []struct {
-			DstAcctpass [2]string
-			SrcAcctpass [2]string
-		}
-	}
-}
-
-func makeReplConf() replConf {
-	return replConf{
-		fs: flag.NewFlagSet("replicate", flag.ContinueOnError),
-	}
-}
-
-func (c *replConf) AttachFlags() {}
 
 type replicateArgs struct {
 	cs               *coms
@@ -43,11 +19,15 @@ func runReplication(cs *coms, l Logger, width int, cnf replConf) error {
 
 	l.Info("starting replication tool")
 
+	if err := cnf.Normalize(); err != nil {
+		return err
+	}
+
 	c := make(chan *replicateArgs)
 	go func() {
 		defer close(c)
 
-		for id, g := range cnf.Groups {
+		for id, g := range cnf.Servers {
 			for ct, as := range g.Accounts {
 				ct++
 
@@ -59,12 +39,14 @@ func runReplication(cs *coms, l Logger, width int, cnf replConf) error {
 					dstConf: sessionConfig{
 						server:   g.DstSrvrport[0],
 						port:     g.DstSrvrport[1],
+						pathprfx: g.DstPathprefix,
 						account:  as.DstAcctpass[0],
 						password: as.DstAcctpass[1],
 					},
 					srcConf: sessionConfig{
 						server:   g.SrcSrvrport[0],
 						port:     g.SrcSrvrport[1],
+						pathprfx: g.SrcPathprefix,
 						account:  as.SrcAcctpass[0],
 						password: as.SrcAcctpass[1],
 					},

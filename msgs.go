@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"strconv"
+	"unicode"
 
 	imap "github.com/emersion/go-imap"
 )
@@ -31,8 +32,8 @@ const (
 func msgHash(m *imap.Message) [hashLen]byte {
 	var b []byte
 
-	b = append(b, []byte(strconv.FormatInt(m.Envelope.Date.UnixNano(), 10))...)
-	b = append(b, []byte(m.Envelope.Subject)...)
+	b = append(b, []byte(strconv.FormatInt(m.Envelope.Date.Unix(), 10))...)
+	b = append(b, stripSpaceToBytes(m.Envelope.Subject)...)
 	b = append(b, []byte(strconv.FormatUint(uint64(m.Size), 10))...)
 
 	b = addresses(m.Envelope.From).appendBytesTo(b)
@@ -46,7 +47,7 @@ func msgHash(m *imap.Message) [hashLen]byte {
 func msgHashes(cl *imapClient, mi *imap.MailboxInfo) (map[[hashLen]byte]uint32, error) {
 	hs := make(map[[hashLen]byte]uint32)
 
-	mbName := delimAdjustedName(mi, cl.delim)
+	mbName := preppedName(mi, cl.delim, cl.pathprfx)
 	mb, err := cl.Select(mbName, false)
 	if err != nil {
 		return hs, err
@@ -97,7 +98,7 @@ func missingUIDs(dst, src *imapClient, mi *imap.MailboxInfo) ([]uint32, error) {
 func messages(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, seq *imap.SeqSet) ([]*imap.Message, error) {
 	var ms []*imap.Message
 
-	mbName := delimAdjustedName(mi, cl.delim)
+	mbName := preppedName(mi, cl.delim, cl.pathprfx)
 	mb, err := cl.Select(mbName, false)
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func messages(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, seq *ima
 }
 
 func addMsgs(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, msgs []*imap.Message) error {
-	mbName := delimAdjustedName(mi, cl.delim)
+	mbName := preppedName(mi, cl.delim, cl.pathprfx)
 
 	bsn, err := imap.ParseBodySectionName(imap.FetchRFC822)
 	bsn.Peek = true
@@ -136,4 +137,17 @@ func addMsgs(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, msgs []*i
 	}
 
 	return nil
+}
+
+func stripSpaceToBytes(s string) []byte {
+	b := make([]byte, 0, len(s))
+
+	for _, r := range s {
+		if !unicode.IsSpace(r) {
+			b = append(b, []byte(string(r))...)
+		}
+
+	}
+
+	return b
 }
