@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"runtime"
 )
 
 var (
@@ -47,4 +48,15 @@ func tripFn(c *coms, l Logger) func(error) {
 			os.Exit(1)
 		}
 	}
+}
+
+func runWidth(reserved int) int {
+	width := runtime.NumCPU() - reserved
+	if width < 1 {
+		width = 1
+	}
+
+	runtime.GOMAXPROCS(width)
+
+	return width
 }

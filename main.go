@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"runtime"
 
 	"github.com/codemodus/sigmon"
 	"github.com/sirupsen/logrus"
@@ -33,23 +32,16 @@ func main() {
 	if !cnf.Main.verbose {
 		l = &voidLog{}
 	}
-	width := runtime.NumCPU() - cnf.Main.rsrvd
-	if width < 1 {
-		width = 1
-	}
+	width := runWidth(cnf.Main.rsrvd)
 
 	// configure shutdown sequence
 	sm.Set(func(s *sigmon.SignalMonitor) {
 		cs.close()
 	})
 
-	l.Info("hello")
-
 	trip(
 		runReplication(cs, l, width, cnf.Repl),
 	)
-
-	l.Info("goodbye")
 
 	// disconnect from system signals
 	sm.Stop()
