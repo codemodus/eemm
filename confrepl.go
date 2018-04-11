@@ -6,8 +6,8 @@ import (
 )
 
 type replAccountsConf struct {
-	DstAcctpass []string
-	SrcAcctpass []string
+	DstAcctpass []string `toml:"DstAcctpass,omitempty" json:"DstAcctpass,omitempty"`
+	SrcAcctpass []string `toml:"SrcAcctpass,omitempty" json:"SrcAcctpass,omitempty"`
 }
 
 func (a *replAccountsConf) normalize(index, sub int) error {
@@ -40,12 +40,12 @@ func (a *replAccountsConf) normalize(index, sub int) error {
 }
 
 type replServersConf struct {
-	DstSrvrport   []string
-	DstPathprefix string
-	SrcSrvrport   []string
-	SrcPathprefix string
+	DstSrvrport   []string `toml:"DstSrvrport,omitempty" json:"DstSrvrport,omitempty"`
+	DstPathprefix string   `toml:"DstPathprefix,omitempty" json:"DstPathprefix,omitempty"`
+	SrcSrvrport   []string `toml:"SrcSrvrport,omitempty" json:"SrcSrvrport,omitempty"`
+	SrcPathprefix string   `toml:"SrcPathprefix,omitempty" json:"SrcPathprefix,omitempty"`
 
-	Accounts []replAccountsConf
+	Accounts []replAccountsConf `toml:"Accounts,omitempty" json:"Accounts,omitempty"`
 }
 
 func (g *replServersConf) normalize(index int) error {
@@ -81,7 +81,7 @@ type replConf struct {
 	fs  *flag.FlagSet
 	run bool
 
-	Servers []replServersConf
+	Servers []replServersConf `toml:"Servers,omitempty" json:"Servers,omitempty"`
 }
 
 func makeReplConf() replConf {

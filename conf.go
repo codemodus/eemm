@@ -36,8 +36,8 @@ func (c *mainConf) Normalize() error { return nil }
 // Conf ...
 type Conf struct {
 	sync.Mutex
-	Main mainConf
-	Repl replConf
+	Main mainConf `toml:"Main" json:"Main"`
+	Repl replConf `toml:"Repl" json:"Repl"`
 }
 
 // NewConf ...
