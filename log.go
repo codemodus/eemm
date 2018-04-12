@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Logger describes basic logging functions.
 type Logger interface {
@@ -17,26 +19,34 @@ func (l *voidLog) Infof(string, ...interface{})  {}
 func (l *voidLog) Error(...interface{})          {}
 func (l *voidLog) Errorf(string, ...interface{}) {}
 
-type trackingLog struct {
+type replScopedLog struct {
 	Logger
 	prefix string
 }
 
-func makeTrackingLog(log Logger, prefix string, id, ct int) trackingLog {
+func newReplScopedLog(log Logger, prefix string, id, ct int) *replScopedLog {
 	if log == nil {
 		log = &voidLog{}
 	}
 
-	return trackingLog{
+	return &replScopedLog{
 		Logger: log,
 		prefix: fmt.Sprintf("%02d-%s-%03d: ", id, prefix, ct),
 	}
 }
 
-func (l *trackingLog) logf(format string, args ...interface{}) {
-	l.Infof(l.prefix+format, args...)
+func (l *replScopedLog) Info(args ...interface{}) {
+	l.Logger.Info(l.prefix + fmt.Sprint(args...))
 }
 
-func (l *trackingLog) logerr(err error) {
-	l.Error(l.prefix + err.Error())
+func (l *replScopedLog) Infof(format string, args ...interface{}) {
+	l.Logger.Infof(l.prefix+format, args...)
+}
+
+func (l *replScopedLog) Error(args ...interface{}) {
+	l.Logger.Error(l.prefix + fmt.Sprint(args...))
+}
+
+func (l *replScopedLog) Errorf(format string, args ...interface{}) {
+	l.Logger.Errorf(l.prefix+format, args...)
 }
