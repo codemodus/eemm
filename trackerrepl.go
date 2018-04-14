@@ -121,7 +121,7 @@ func closeReplTrackerFile(mu sync.Locker, f *os.File, cnf *replConf) error {
 	}
 
 	type replwrap struct {
-		Repl replConf `toml:"Repl" json:"Repl"`
+		Repl replConf `toml:"Repl,omitempty" json:"Repl,omitempty"`
 	}
 
 	enc := toml.NewEncoder(f)
