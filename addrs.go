@@ -2,9 +2,17 @@ package main
 
 import (
 	"sort"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	imap "github.com/emersion/go-imap"
+)
+
+const (
+	msngMbx = "missing_mailbox"
+	msngDom = "missing_domain"
+	emailAt = "@"
 )
 
 type addresses []*imap.Address
@@ -13,6 +21,10 @@ func (ads addresses) appendBytesTo(b []byte) []byte {
 	sort.Sort(&ads)
 
 	for _, v := range ads {
+		if addressIncomplete(v) || addressMailboxNameMalformed(v) {
+			continue
+		}
+
 		b = append(b, []byte(v.MailboxName)...)
 		b = append(b, []byte(v.HostName)...)
 	}
@@ -66,4 +78,22 @@ func (ads *addresses) Less(i, j int) bool {
 	}
 
 	return false
+}
+
+func addressIncomplete(a *imap.Address) bool {
+	if a.MailboxName == "" || a.HostName == "" {
+		return true
+	}
+
+	if strings.Contains(a.MailboxName, emailAt) || strings.Contains(a.HostName, emailAt) {
+		return true
+	}
+
+	return strings.ToLower(a.MailboxName) == msngMbx || strings.ToLower(a.HostName) == msngDom
+}
+
+func addressMailboxNameMalformed(a *imap.Address) bool {
+	rs := []rune(a.MailboxName)
+
+	return len(rs) < 1 || !unicode.IsLetter(rs[0]) || !unicode.IsLetter(rs[len(rs)-1])
 }
