@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-
-	imap "github.com/emersion/go-imap"
 )
 
 type bondedSession struct {
@@ -42,7 +40,7 @@ func (s *bondedSession) close() {
 	}
 }
 
-func (s *bondedSession) replicateMailboxes() ([]*imap.MailboxInfo, error) {
+func (s *bondedSession) replicateMailboxes() ([]*imapMailboxInfo, error) {
 	return s.src.replicateMailboxes(s.dst)
 }
 

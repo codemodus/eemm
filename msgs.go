@@ -44,11 +44,15 @@ func msgHash(m *imap.Message) [hashLen]byte {
 	return md5.Sum(b)
 }
 
-func msgHashes(cl *imapClient, mi *imap.MailboxInfo) (map[[hashLen]byte]uint32, error) {
+func msgHashes(cl *imapClient, mi *imapMailboxInfo, fromSafe bool) (map[[hashLen]byte]uint32, error) {
 	hs := make(map[[hashLen]byte]uint32)
 
-	mbName := preppedName(mi, cl.delim, cl.pathprfx)
-	mb, err := cl.Select(mbName, false)
+	prepFn := mi.preparedName
+	if fromSafe {
+		prepFn = mi.preparedSafeName
+	}
+
+	mb, err := cl.Select(prepFn(cl.delim, cl.pathprfx), false)
 	if err != nil {
 		return hs, err
 	}
@@ -60,7 +64,7 @@ func msgHashes(cl *imapClient, mi *imap.MailboxInfo) (map[[hashLen]byte]uint32, 
 	seq := &imap.SeqSet{}
 	seq.AddRange(1, mb.Messages)
 
-	msgs := make(chan *imap.Message, 10)
+	msgs := make(chan *imap.Message, 20)
 	msgsErr := make(chan error, 1)
 	go func() {
 		msgsErr <- cl.Fetch(seq, shortFetchItem, msgs)
@@ -73,13 +77,13 @@ func msgHashes(cl *imapClient, mi *imap.MailboxInfo) (map[[hashLen]byte]uint32, 
 	return hs, <-msgsErr
 }
 
-func missingUIDs(dst, src *imapClient, mi *imap.MailboxInfo) ([]uint32, error) {
-	srcHs, err := msgHashes(src, mi)
+func missingUIDs(dst, src *imapClient, mi *imapMailboxInfo) ([]uint32, error) {
+	srcHs, err := msgHashes(src, mi, false)
 	if err != nil {
 		return nil, err
 	}
 
-	dstHs, err := msgHashes(dst, mi)
+	dstHs, err := msgHashes(dst, mi, true)
 	if err != nil {
 		return nil, err
 	}
@@ -95,11 +99,10 @@ func missingUIDs(dst, src *imapClient, mi *imap.MailboxInfo) ([]uint32, error) {
 	return uids, nil
 }
 
-func messages(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, seq *imap.SeqSet) ([]*imap.Message, error) {
+func messages(done chan struct{}, cl *imapClient, mi *imapMailboxInfo, seq *imap.SeqSet) ([]*imap.Message, error) {
 	var ms []*imap.Message
 
-	mbName := preppedName(mi, cl.delim, cl.pathprfx)
-	mb, err := cl.Select(mbName, false)
+	mb, err := cl.Select(mi.preparedName(cl.delim, cl.pathprfx), false)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +111,7 @@ func messages(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, seq *ima
 		return nil, nil
 	}
 
-	msgs := make(chan *imap.Message, 10)
+	msgs := make(chan *imap.Message, 20)
 	msgsErr := make(chan error, 1)
 	go func() {
 		msgsErr <- cl.UidFetch(seq, fullFetchItem, msgs)
@@ -121,8 +124,8 @@ func messages(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, seq *ima
 	return ms, <-msgsErr
 }
 
-func addMsgs(done chan struct{}, cl *imapClient, mi *imap.MailboxInfo, msgs []*imap.Message) error {
-	mbName := preppedName(mi, cl.delim, cl.pathprfx)
+func addMsgs(done chan struct{}, cl *imapClient, mi *imapMailboxInfo, msgs []*imap.Message) error {
+	mbName := mi.preparedSafeName(cl.delim, cl.pathprfx)
 
 	bsn, err := imap.ParseBodySectionName(imap.FetchRFC822)
 	bsn.Peek = true

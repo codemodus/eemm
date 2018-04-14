@@ -122,8 +122,8 @@ func (s *session) setDelim() error {
 		return err
 	}
 
-	ic := make(chan *imap.MailboxInfo, 10)
-	ec := make(chan error)
+	ic := make(chan *imap.MailboxInfo, 20)
+	ec := make(chan error, 1)
 	defer close(ec)
 
 	go func() {
@@ -137,7 +137,7 @@ func (s *session) setDelim() error {
 	return <-ec
 }
 
-func (s *session) replicateMailboxes(dst *session) ([]*imap.MailboxInfo, error) {
+func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
 	if err := ensureLogins(dst, s); err != nil {
 		return nil, err
 	}
@@ -169,6 +169,8 @@ func (s *session) replicateMessages(dst *session) error {
 	if err != nil {
 		return err
 	}
+
+	setSafeNames(dst.cl, s.cl, mis)
 
 	for _, mi := range mis {
 		uids, err := missingUIDs(dst.cl, s.cl, mi)
