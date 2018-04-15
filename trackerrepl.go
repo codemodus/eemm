@@ -25,17 +25,17 @@ func newReplTracker() (*replTracker, error) {
 	tm := time.Now()
 	ft := tm.Format("200601021504")
 
-	v, err := os.Create("valid_" + ft)
+	v, err := os.Create(ft + "_valid")
 	if err != nil {
 		return nil, err
 	}
 
-	i, err := os.Create("invalid_" + ft)
+	i, err := os.Create(ft + "_invalid")
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := os.Create("original_" + ft)
+	c, err := os.Create(ft + "_original")
 	if err != nil {
 		return nil, err
 	}
