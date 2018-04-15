@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	imap "github.com/emersion/go-imap"
 )
 
 type bondedSession struct {
@@ -10,18 +12,18 @@ type bondedSession struct {
 	src *session
 }
 
-func makeBondedSession(cs *coms, dstConf, srcConf sessionConfig) (bondedSession, error) {
+func makeBondedSession(cs *coms, l imap.Logger, dstConf, srcConf sessionConfig) (bondedSession, error) {
 	bs := bondedSession{
 		coms: cs,
 	}
 
-	dst, err := newSession(cs, dstConf)
+	dst, err := newSession(cs, l, dstConf)
 	if err != nil {
 		return bs, fmt.Errorf("cannot create destination session: %s", err)
 	}
 	bs.dst = dst
 
-	src, err := newSession(cs, srcConf)
+	src, err := newSession(cs, l, srcConf)
 	if err != nil {
 		return bs, fmt.Errorf("cannot create source session: %s", err)
 	}

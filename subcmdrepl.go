@@ -70,7 +70,7 @@ func replicate(a *replicateArgs) error {
 		a.dstConf.account, a.dstConf.server, a.srcConf.account, a.srcConf.server,
 	)
 
-	bs, err := makeBondedSession(a.cs, a.dstConf, a.srcConf)
+	bs, err := makeBondedSession(a.cs, a.l, a.dstConf, a.srcConf)
 	if err != nil {
 		a.l.Errorf("cannot bond sessions: %s", err)
 		return err

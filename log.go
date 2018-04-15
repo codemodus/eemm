@@ -10,6 +10,8 @@ type Logger interface {
 	Infof(string, ...interface{})
 	Error(...interface{})
 	Errorf(string, ...interface{})
+	Println(...interface{})
+	Printf(string, ...interface{})
 }
 
 type voidLog struct{}
@@ -18,6 +20,8 @@ func (l *voidLog) Info(...interface{})           {}
 func (l *voidLog) Infof(string, ...interface{})  {}
 func (l *voidLog) Error(...interface{})          {}
 func (l *voidLog) Errorf(string, ...interface{}) {}
+func (l *voidLog) Println(...interface{})        {}
+func (l *voidLog) Printf(string, ...interface{}) {}
 
 type replScopedLog struct {
 	Logger
@@ -49,4 +53,12 @@ func (l *replScopedLog) Error(args ...interface{}) {
 
 func (l *replScopedLog) Errorf(format string, args ...interface{}) {
 	l.Logger.Errorf(l.prefix+format, args...)
+}
+
+func (l *replScopedLog) Println(args ...interface{}) {
+	l.Error(args...)
+}
+
+func (l *replScopedLog) Printf(format string, args ...interface{}) {
+	l.Errorf(format, args...)
 }

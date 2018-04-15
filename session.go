@@ -27,7 +27,7 @@ type session struct {
 	cl  *imapClient
 }
 
-func newSession(cs *coms, cnf sessionConfig) (*session, error) {
+func newSession(cs *coms, l imap.Logger, cnf sessionConfig) (*session, error) {
 	s := &session{
 		coms: cs,
 		cnf:  cnf,
@@ -36,7 +36,7 @@ func newSession(cs *coms, cnf sessionConfig) (*session, error) {
 		},
 	}
 
-	if err := s.dial(); err != nil {
+	if err := s.dial(l); err != nil {
 		return nil, fmt.Errorf("cannot dial into %s on %s: %s", cnf.port, cnf.server, err)
 	}
 
@@ -65,7 +65,7 @@ func (s *session) close() {
 	_ = s.cl.Close()
 }
 
-func (s *session) dial() error {
+func (s *session) dial(l imap.Logger) error {
 	if err := s.term(); err != nil {
 		return err
 	}
@@ -76,6 +76,7 @@ func (s *session) dial() error {
 			return err
 		}
 
+		cl.ErrorLog = l
 		s.cl.Client = cl
 
 		return nil
