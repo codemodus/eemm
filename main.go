@@ -32,7 +32,7 @@ func main() {
 	if !cnf.Main.verbose {
 		l = &voidLog{}
 	}
-	width := runWidth(cnf.Main.rsrvd)
+	width := runWidth(cnf.Main.rsrvd, cnf.Main.conc)
 
 	// configure shutdown sequence
 	sm.Set(func(s *sigmon.SignalMonitor) {

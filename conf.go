@@ -18,17 +18,21 @@ type mainConf struct {
 	fs      *flag.FlagSet
 	verbose bool
 	rsrvd   int
+	conc    int
 }
 
 func makeMainConf() mainConf {
 	return mainConf{
-		fs: flag.NewFlagSet("main", flag.ContinueOnError),
+		fs:    flag.NewFlagSet("main", flag.ContinueOnError),
+		rsrvd: 2,
+		conc:  8,
 	}
 }
 
 func (c *mainConf) AttachFlags() {
 	c.fs.BoolVar(&c.verbose, "v", c.verbose, "enable logging")
 	c.fs.IntVar(&c.rsrvd, "rcpus", c.rsrvd, "reserved cpu count")
+	c.fs.IntVar(&c.conc, "conc", c.conc, "concurrency count; limited to unreserved cpus")
 }
 
 func (c *mainConf) Normalize() error { return nil }

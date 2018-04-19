@@ -50,13 +50,17 @@ func tripFn(c *coms, l Logger) func(error) {
 	}
 }
 
-func runWidth(reserved int) int {
-	width := runtime.NumCPU() - reserved
-	if width < 1 {
-		width = 1
+func runWidth(reserved, concurrency int) int {
+	maxProcs := runtime.NumCPU() - reserved
+	if maxProcs < 1 {
+		maxProcs = 1
 	}
 
-	runtime.GOMAXPROCS(width)
+	runtime.GOMAXPROCS(maxProcs)
 
-	return width
+	if concurrency > maxProcs {
+		concurrency = maxProcs
+	}
+
+	return concurrency
 }
