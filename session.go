@@ -62,7 +62,7 @@ func (s *session) close() {
 	}
 
 	_ = s.cl.Logout()
-	_ = s.cl.Close()
+	_ = s.cl.Terminate()
 }
 
 func (s *session) dial(l imap.Logger) error {
