@@ -113,13 +113,8 @@ func (s *session) login() error {
 	return s.cl.Login(s.cnf.account, s.cnf.password)
 }
 
-func (s *session) ensureLogin() error {
-	// TODO: implement ensureLogin correctly
-	return s.ensureClient()
-}
-
 func (s *session) setDelim() error {
-	if err := s.ensureLogin(); err != nil {
+	if err := s.term(); err != nil {
 		return err
 	}
 
@@ -139,7 +134,7 @@ func (s *session) setDelim() error {
 }
 
 func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
-	if err := ensureLogins(dst, s); err != nil {
+	if err := checkTerm(dst, s); err != nil {
 		return nil, err
 	}
 
@@ -162,7 +157,7 @@ func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
 }
 
 func (s *session) replicateMessages(dst *session) error {
-	if err := ensureLogins(dst, s); err != nil {
+	if err := checkTerm(dst, s); err != nil {
 		return err
 	}
 
@@ -194,10 +189,10 @@ func (s *session) replicateMessages(dst *session) error {
 	return nil
 }
 
-func ensureLogins(dst, src *session) error {
-	if err := src.ensureLogin(); err != nil {
+func checkTerm(dst, src *session) error {
+	if err := src.term(); err != nil {
 		return err
 	}
 
-	return dst.ensureLogin()
+	return dst.term()
 }
