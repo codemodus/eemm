@@ -105,6 +105,20 @@ func (s *session) ensureClient() error {
 	return nil
 }
 
+func (s *session) checkTerm() error {
+	if err := s.term(); err != nil {
+		return err
+	}
+
+	select {
+	case <-s.cl.LoggedOut():
+		return fmt.Errorf("unexpectedly logged out")
+	default:
+	}
+
+	return nil
+}
+
 func (s *session) login() error {
 	if err := s.ensureClient(); err != nil {
 		return err
@@ -114,7 +128,7 @@ func (s *session) login() error {
 }
 
 func (s *session) setDelim() error {
-	if err := s.term(); err != nil {
+	if err := s.checkTerm(); err != nil {
 		return err
 	}
 
@@ -134,7 +148,7 @@ func (s *session) setDelim() error {
 }
 
 func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
-	if err := checkTerm(dst, s); err != nil {
+	if err := checkTerms(dst, s); err != nil {
 		return nil, err
 	}
 
@@ -157,7 +171,7 @@ func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
 }
 
 func (s *session) replicateMessages(dst *session) error {
-	if err := checkTerm(dst, s); err != nil {
+	if err := checkTerms(dst, s); err != nil {
 		return err
 	}
 
@@ -189,10 +203,10 @@ func (s *session) replicateMessages(dst *session) error {
 	return nil
 }
 
-func checkTerm(dst, src *session) error {
-	if err := src.term(); err != nil {
+func checkTerms(dst, src *session) error {
+	if err := src.checkTerm(); err != nil {
 		return err
 	}
 
-	return dst.term()
+	return dst.checkTerm()
 }
