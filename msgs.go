@@ -71,6 +71,10 @@ func msgHashes(cl *imapClient, mi *imapMailboxInfo, fromSafe bool) (map[[hashLen
 	}()
 
 	for msg := range msgs {
+		if msg.Size == 0 {
+			continue
+		}
+
 		hs[msgHash(msg)] = msg.Uid
 	}
 
