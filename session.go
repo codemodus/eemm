@@ -132,7 +132,7 @@ func (s *session) setDelim() error {
 		return err
 	}
 
-	ic := make(chan *imap.MailboxInfo, 20)
+	ic := make(chan *imap.MailboxInfo, 40)
 	ec := make(chan error, 1)
 	defer close(ec)
 

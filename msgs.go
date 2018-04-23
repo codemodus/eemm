@@ -64,7 +64,7 @@ func msgHashes(cl *imapClient, mi *imapMailboxInfo, fromSafe bool) (map[[hashLen
 	seq := &imap.SeqSet{}
 	seq.AddRange(1, mb.Messages)
 
-	msgs := make(chan *imap.Message, 20)
+	msgs := make(chan *imap.Message, 40)
 	msgsErr := make(chan error, 1)
 	go func() {
 		msgsErr <- cl.Fetch(seq, shortFetchItem, msgs)
@@ -115,7 +115,7 @@ func messages(done chan struct{}, cl *imapClient, mi *imapMailboxInfo, seq *imap
 		return nil, nil
 	}
 
-	msgs := make(chan *imap.Message, 20)
+	msgs := make(chan *imap.Message, 40)
 	msgsErr := make(chan error, 1)
 	go func() {
 		msgsErr <- cl.UidFetch(seq, fullFetchItem, msgs)
