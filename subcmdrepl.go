@@ -46,6 +46,7 @@ func generateReplicateCtxs(cs *coms, l Logger, t *replTracker, cnf replConf) (ch
 						pathprfx: g.DstPathprefix,
 						account:  as.DstAcctpass[0],
 						password: as.DstAcctpass[1],
+						debug:    cnf.dstDebug,
 					},
 					srcConf: sessionConfig{
 						server:   g.SrcSrvrport[0],
@@ -53,6 +54,7 @@ func generateReplicateCtxs(cs *coms, l Logger, t *replTracker, cnf replConf) (ch
 						pathprfx: g.SrcPathprefix,
 						account:  as.SrcAcctpass[0],
 						password: as.SrcAcctpass[1],
+						debug:    cnf.srcDebug,
 					},
 				}
 

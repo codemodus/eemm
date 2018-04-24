@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	imap "github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
@@ -19,6 +20,7 @@ type sessionConfig struct {
 	pathprfx string
 	account  string
 	password string
+	debug    bool
 }
 
 type session struct {
@@ -36,7 +38,7 @@ func newSession(cs *coms, l imap.Logger, cnf sessionConfig) (*session, error) {
 		},
 	}
 
-	if err := s.dial(l); err != nil {
+	if err := s.dial(l, cnf.debug); err != nil {
 		return nil, fmt.Errorf("cannot dial into %s on %s: %s", cnf.port, cnf.server, err)
 	}
 
@@ -65,27 +67,30 @@ func (s *session) close() {
 	_ = s.cl.Terminate()
 }
 
-func (s *session) dial(l imap.Logger) error {
+func (s *session) dial(l imap.Logger, debug bool) error {
 	if err := s.term(); err != nil {
 		return err
 	}
 
-	if s.cnf.port != "993" {
-		cl, err := client.Dial(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port))
-		if err != nil {
-			return err
-		}
-
-		cl.ErrorLog = l
-		s.cl.Client = cl
-
-		return nil
+	dialFn := func() (*client.Client, error) {
+		return client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
 	}
 
-	cl, err := client.DialTLS(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port), nil)
+	if s.cnf.port != "993" {
+		dialFn = func() (*client.Client, error) {
+			return client.Dial(fmt.Sprintf("%s:%s", s.cnf.server, s.cnf.port))
+		}
+	}
+
+	cl, err := dialFn()
 	if err != nil {
 		return err
 	}
+
+	if debug {
+		cl.SetDebug(os.Stdout)
+	}
+	cl.ErrorLog = l
 
 	s.cl.Client = cl
 

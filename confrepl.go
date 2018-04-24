@@ -81,7 +81,9 @@ type replConf struct {
 	fs  *flag.FlagSet
 	run bool
 
-	Servers []replServersConf `toml:"Servers,omitempty" json:"Servers,omitempty"`
+	dstDebug bool
+	srcDebug bool
+	Servers  []replServersConf `toml:"Servers,omitempty" json:"Servers,omitempty"`
 }
 
 func makeReplConf() replConf {
@@ -90,7 +92,10 @@ func makeReplConf() replConf {
 	}
 }
 
-func (c *replConf) AttachFlags() {}
+func (c *replConf) AttachFlags() {
+	c.fs.BoolVar(&c.dstDebug, "dst-debug", c.dstDebug, "enable dst client debugging")
+	c.fs.BoolVar(&c.srcDebug, "src-debug", c.srcDebug, "enable src client debugging")
+}
 
 func (c *replConf) Normalize() error {
 	for k := range c.Servers {
