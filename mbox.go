@@ -81,6 +81,10 @@ func mailboxInfos(cl *imapClient, name string) ([]*imapMailboxInfo, error) {
 
 		mis = append(mis, mi)
 
+		if mailboxHasNoChildren(imi) {
+			continue
+		}
+
 		children, err := mailboxInfos(cl, imiName)
 		if err != nil {
 			drainMailboxInfo(ic, ec)
@@ -144,6 +148,16 @@ func drainMailboxInfo(c chan *imap.MailboxInfo, ec chan error) {
 	case <-ec:
 	default:
 	}
+}
+
+func mailboxHasNoChildren(mi *imap.MailboxInfo) bool {
+	for _, f := range mi.Attributes {
+		if strings.ToLower(f) == "hasnochildren" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func preparedName(miName, miDelim, delim, pathprfx string) string {
