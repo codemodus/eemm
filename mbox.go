@@ -64,7 +64,7 @@ func mailboxInfos(cl *imapClient, name string) ([]*imapMailboxInfo, error) {
 		return nil, err
 	}
 
-	ic := make(chan *imap.MailboxInfo, 40)
+	ic := make(chan *imap.MailboxInfo, 80)
 	ec := make(chan error, 1)
 	defer close(ec)
 
