@@ -152,7 +152,7 @@ func drainMailboxInfo(c chan *imap.MailboxInfo, ec chan error) {
 
 func mailboxHasNoChildren(mi *imap.MailboxInfo) bool {
 	for _, f := range mi.Attributes {
-		if strings.ToLower(f) == "hasnochildren" {
+		if strings.ToLower(f) == `\hasnochildren` {
 			return true
 		}
 	}
