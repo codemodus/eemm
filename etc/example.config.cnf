@@ -1,6 +1,8 @@
 [[Repl.Servers]]
     DstSrvrport = ["mail.destination.test", "4493"] # omitted destination port defaults to 993
+    DstPathprefix = "INBOX" # optional
     SrcSrvrport = ["mail.source.test"] # omitted source details will be copied from destination
+    SrcPathprefix = "INBOX" # optional
 
     [[Repl.Servers.Accounts]]
         DstAcctpass =  ["username", "password"]
