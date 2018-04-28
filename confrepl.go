@@ -8,6 +8,7 @@ import (
 type replAccountsConf struct {
 	DstAcctpass []string `toml:"DstAcctpass,omitempty" json:"DstAcctpass,omitempty"`
 	SrcAcctpass []string `toml:"SrcAcctpass,omitempty" json:"SrcAcctpass,omitempty"`
+	Exclude     []string `toml:"Exclude,omitempty" json:"Exclude,omitempty"`
 }
 
 func (a *replAccountsConf) normalize(index, sub int) error {
@@ -44,6 +45,7 @@ type replServersConf struct {
 	DstPathprefix string   `toml:"DstPathprefix,omitempty" json:"DstPathprefix,omitempty"`
 	SrcSrvrport   []string `toml:"SrcSrvrport,omitempty" json:"SrcSrvrport,omitempty"`
 	SrcPathprefix string   `toml:"SrcPathprefix,omitempty" json:"SrcPathprefix,omitempty"`
+	Exclude       []string `toml:"Exclude,omitempty" json:"Exclude,omitempty"`
 
 	Accounts []replAccountsConf `toml:"Accounts,omitempty" json:"Accounts,omitempty"`
 }

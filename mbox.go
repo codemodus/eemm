@@ -59,10 +59,12 @@ func setSafeNames(dst, src *imapClient, srcMis []*imapMailboxInfo) {
 	}
 }
 
-func mailboxInfos(cl *imapClient, name string) ([]*imapMailboxInfo, error) {
+func mailboxInfos(cl *imapClient, name string, glblExcl, lclExcl []string) ([]*imapMailboxInfo, error) {
 	if err := checkDepth(name, cl.delim); err != nil {
 		return nil, err
 	}
+
+	// TODO: skip if excluded.
 
 	ic := make(chan *imap.MailboxInfo, 80)
 	ec := make(chan error, 1)
@@ -85,7 +87,7 @@ func mailboxInfos(cl *imapClient, name string) ([]*imapMailboxInfo, error) {
 			continue
 		}
 
-		children, err := mailboxInfos(cl, imiName)
+		children, err := mailboxInfos(cl, imiName, glblExcl, lclExcl)
 		if err != nil {
 			drainMailboxInfo(ic, ec)
 			return nil, err
@@ -101,13 +103,13 @@ func mailboxInfos(cl *imapClient, name string) ([]*imapMailboxInfo, error) {
 	return mis, nil
 }
 
-func missingMailboxInfos(dst, src *imapClient) ([]*imapMailboxInfo, error) {
-	srcMis, err := mailboxInfos(src, "")
+func missingMailboxInfos(dst, src *imapClient, glblExcl, lclExcl []string) ([]*imapMailboxInfo, error) {
+	srcMis, err := mailboxInfos(src, "", glblExcl, lclExcl)
 	if err != nil {
 		return nil, err
 	}
 
-	dstMis, err := mailboxInfos(dst, "")
+	dstMis, err := mailboxInfos(dst, "", glblExcl, lclExcl)
 	if err != nil {
 		return nil, err
 	}

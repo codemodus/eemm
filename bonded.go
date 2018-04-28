@@ -42,10 +42,10 @@ func (s *bondedSession) close() {
 	}
 }
 
-func (s *bondedSession) replicateMailboxes() ([]*imapMailboxInfo, error) {
-	return s.src.replicateMailboxes(s.dst)
+func (s *bondedSession) replicateMailboxes(glblExcl, lclExcl []string) ([]*imapMailboxInfo, error) {
+	return s.src.replicateMailboxes(s.dst, glblExcl, lclExcl)
 }
 
-func (s *bondedSession) replicateMessages() error {
-	return s.src.replicateMessages(s.dst)
+func (s *bondedSession) replicateMessages(glblExcl, lclExcl []string) error {
+	return s.src.replicateMessages(s.dst, glblExcl, lclExcl)
 }

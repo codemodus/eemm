@@ -5,10 +5,12 @@ import (
 )
 
 type replicateArgs struct {
-	cs      *coms
-	l       *replScopedLog
-	dstConf sessionConfig
-	srcConf sessionConfig
+	cs       *coms
+	l        *replScopedLog
+	dstConf  sessionConfig
+	srcConf  sessionConfig
+	glblExcl []string
+	lclExcl  []string
 }
 
 type replicateCtx struct {
@@ -56,6 +58,8 @@ func generateReplicateCtxs(cs *coms, l Logger, t *replTracker, cnf replConf) (ch
 						password: as.SrcAcctpass[1],
 						debug:    cnf.srcDebug,
 					},
+					glblExcl: g.Exclude,
+					lclExcl:  as.Exclude,
 				}
 
 				c <- ctx
@@ -85,14 +89,14 @@ func replicate(a *replicateArgs) error {
 
 	a.l.Info("replicating mailboxes")
 
-	if _, err := bs.replicateMailboxes(); err != nil {
+	if _, err := bs.replicateMailboxes(a.glblExcl, a.lclExcl); err != nil {
 		a.l.Errorf("cannot replicate mailboxes: %s", err)
 		return err
 	}
 
 	a.l.Info("replicating messages")
 
-	if err := bs.replicateMessages(); err != nil {
+	if err := bs.replicateMessages(a.glblExcl, a.lclExcl); err != nil {
 		a.l.Errorf("cannot replicate messages: %s", err)
 		return err
 	}

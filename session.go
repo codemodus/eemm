@@ -152,12 +152,12 @@ func (s *session) setDelim() error {
 	return <-ec
 }
 
-func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
+func (s *session) replicateMailboxes(dst *session, glblExcl, lclExcl []string) ([]*imapMailboxInfo, error) {
 	if err := checkTerms(dst, s); err != nil {
 		return nil, err
 	}
 
-	mis, err := missingMailboxInfos(dst.cl, s.cl)
+	mis, err := missingMailboxInfos(dst.cl, s.cl, glblExcl, lclExcl)
 	if err != nil {
 		return nil, err
 	}
@@ -175,12 +175,12 @@ func (s *session) replicateMailboxes(dst *session) ([]*imapMailboxInfo, error) {
 	return mis, nil
 }
 
-func (s *session) replicateMessages(dst *session) error {
+func (s *session) replicateMessages(dst *session, glblExcl, lclExcl []string) error {
 	if err := checkTerms(dst, s); err != nil {
 		return err
 	}
 
-	mis, err := mailboxInfos(s.cl, "")
+	mis, err := mailboxInfos(s.cl, "", glblExcl, lclExcl)
 	if err != nil {
 		return err
 	}

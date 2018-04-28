@@ -3,10 +3,12 @@
     DstPathprefix = "INBOX" # optional
     SrcSrvrport = ["mail.source.test"] # omitted source details will be copied from destination
     SrcPathprefix = "INBOX" # optional
+    Exclude = ["Trash", "Spam"] # optional
 
     [[Repl.Servers.Accounts]]
         DstAcctpass =  ["username", "password"]
         SrcAcctpass = ["user@domain.test", "userpass"]
+        Exclude = ["Expired", "INBOX/Deleteme"] # optional
     [[Repl.Servers.Accounts]]
         DstAcctpass =  ["other@domain.test", "otherpass"]
         # omitted source details will be copied from destination
