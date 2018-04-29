@@ -64,3 +64,33 @@ func runWidth(reserved, concurrency int) int {
 
 	return concurrency
 }
+
+func pathNameMatches(ref, val string) bool {
+	if len(val) < len(ref) {
+		return false
+	}
+
+	n := -1
+	for i := 0; i < len(ref); i++ {
+		n++
+		if n >= len(val)-1 {
+			break
+		}
+
+		if ref[i] == '*' {
+			if val[n] == '/' {
+				n--
+				continue
+			}
+
+			i--
+			continue
+		}
+
+		if ref[i] != val[n] {
+			return false
+		}
+	}
+
+	return n == len(val)-1
+}

@@ -64,8 +64,6 @@ func mailboxInfos(cl *imapClient, name string, glblExcl, lclExcl []string) ([]*i
 		return nil, err
 	}
 
-	// TODO: skip if excluded.
-
 	ic := make(chan *imap.MailboxInfo, 80)
 	ec := make(chan error, 1)
 	defer close(ec)
@@ -77,6 +75,10 @@ func mailboxInfos(cl *imapClient, name string, glblExcl, lclExcl []string) ([]*i
 	var mis []*imapMailboxInfo
 
 	for imi := range ic {
+		if mailboxExcluded(imi.Name, cl.delim, glblExcl, lclExcl) {
+			continue
+		}
+
 		mi := &imapMailboxInfo{MailboxInfo: imi}
 		imiName := mi.Name
 		mi.Name = mi.trimmedName(cl.pathprfx)
@@ -109,7 +111,7 @@ func missingMailboxInfos(dst, src *imapClient, glblExcl, lclExcl []string) ([]*i
 		return nil, err
 	}
 
-	dstMis, err := mailboxInfos(dst, "", glblExcl, lclExcl)
+	dstMis, err := mailboxInfos(dst, "", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +158,20 @@ func mailboxHasNoChildren(mi *imap.MailboxInfo) bool {
 	for _, f := range mi.Attributes {
 		if strings.ToLower(f) == `\hasnochildren` {
 			return true
+		}
+	}
+
+	return false
+}
+
+func mailboxExcluded(name, delim string, excludeds ...[]string) bool {
+	n := preparedName(name, delim, "/", "")
+
+	for _, excluded := range excludeds {
+		for _, e := range excluded {
+			if pathNameMatches(e, n) {
+				return true
+			}
 		}
 	}
 
