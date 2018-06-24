@@ -10,7 +10,7 @@ import (
 func main() {
 	// wire into system signals and ignore during startup
 	sm := sigmon.New(nil)
-	sm.Run()
+	sm.Start()
 
 	// setup logging and main circuit breaker
 	var l Logger = logrus.New()
@@ -35,7 +35,7 @@ func main() {
 	width := runWidth(cnf.Main.rsrvd, cnf.Main.conc)
 
 	// configure shutdown sequence
-	sm.Set(func(s *sigmon.SignalMonitor) {
+	sm.Set(func(s *sigmon.State) {
 		cs.close()
 	})
 
