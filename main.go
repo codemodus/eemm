@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/codemodus/sigmon"
+	"github.com/codemodus/sigmon/v2"
 	"github.com/sirupsen/logrus"
 )
 
